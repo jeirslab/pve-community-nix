@@ -21,7 +21,7 @@
   #   imports = [ (catalog.lib.mkApp { app = "jellyfin"; compute = { vm_id = 120; … }; }) ];
 
   inputs = {
-    fleetkit.url = "github:alexanderjerome/fleetkit";
+    fleetkit.url = "github:jeirslab/fleetkit";
     nixpkgs.follows = "fleetkit/nixpkgs";
   };
 

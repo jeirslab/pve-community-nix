@@ -3,6 +3,7 @@
     "disko": {
       "inputs": {
         "nixpkgs": [
+          "fleetkit",
           "nixpkgs"
         ]
       },
@@ -41,6 +42,7 @@
     "flake-parts_2": {
       "inputs": {
         "nixpkgs-lib": [
+          "fleetkit",
           "terranix",
           "nixpkgs"
         ]
@@ -87,15 +89,15 @@
         "terranix": "terranix"
       },
       "locked": {
-        "lastModified": 1788572716,
-        "narHash": "sha256-CUr7uUJPHNmxWoCK91URKSmyV/B200lJcUwZzR2Ylcs=",
-        "owner": "alexanderjerome",
+        "lastModified": 1789092754,
+        "narHash": "sha256-ROZDIZUHs6dGjulEor+ZUCvxhy6W5egADpkaPgg0R9A=",
+        "owner": "jeirslab",
         "repo": "fleetkit",
-        "rev": "91e4ddbcd68256df701f6f5f88d5a10aaa7c8451",
+        "rev": "2bbbf998c98baf934c0240c00c1db73c18a52d06",
         "type": "github"
       },
       "original": {
-        "owner": "alexanderjerome",
+        "owner": "jeirslab",
         "repo": "fleetkit",
         "type": "github"
       }
@@ -104,6 +106,7 @@
       "inputs": {
         "flake-parts": "flake-parts",
         "nixpkgs": [
+          "fleetkit",
           "nixpkgs"
         ]
       },
@@ -164,6 +167,7 @@
     "sops-nix": {
       "inputs": {
         "nixpkgs": [
+          "fleetkit",
           "nixpkgs"
         ]
       },
@@ -215,6 +219,7 @@
       "inputs": {
         "flake-parts": "flake-parts_2",
         "nixpkgs": [
+          "fleetkit",
           "nixpkgs"
         ],
         "systems": "systems_2"
