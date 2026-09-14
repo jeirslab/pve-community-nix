@@ -23,6 +23,8 @@ Flags:
   --reboot          Reboot when finished.
   --no-reboot       Do not reboot (override the declared default).
   --no-update       Skip apt update && dist-upgrade.
+  --install-nix     Install Determinate Nix on the host (idempotent).
+  --no-install-nix  Do not install Nix (override the declared default).
   -h, --help        This help.
 
 What it does is declared in nix/pve/post-install/options.nix; the compiled-in
@@ -37,6 +39,8 @@ while [ $# -gt 0 ]; do
     --reboot) PVE_PI_REBOOT=1 ;;
     --no-reboot) PVE_PI_REBOOT=0 ;;
     --no-update) PVE_PI_UPDATE=0 ;;
+    --install-nix) PVE_PI_INSTALL_NIX=1 ;;
+    --no-install-nix) PVE_PI_INSTALL_NIX=0 ;;
     -h | --help) usage; exit 0 ;;
     *) echo "pve-post-install: unknown argument '$1' (try --help)" >&2; exit 2 ;;
   esac
@@ -102,6 +106,7 @@ Plan:
   add pve-test (off)  : $(yn "$PVE_PI_PVE_TEST")
   disable nag         : $(yn "$PVE_PI_DISABLE_NAG")
   high availability   : ${PVE_PI_HA}
+  install nix (determinate): $(yn "$PVE_PI_INSTALL_NIX")
   update (dist-upgrade): $(yn "$PVE_PI_UPDATE")
   reboot after        : $(yn "$PVE_PI_REBOOT")
 PLAN
@@ -245,6 +250,20 @@ case "$PVE_PI_HA" in
     ;;
   leave) : ;;
 esac
+
+# ── Determinate Nix ──────────────────────────────────────────────────
+if [ "$PVE_PI_INSTALL_NIX" = 1 ]; then
+  step "Installing Determinate Nix"
+  if command -v nix >/dev/null 2>&1; then
+    log "nix already present ($(command -v nix)) — installer is idempotent"
+  fi
+  if [ "$APPLY" = 1 ]; then
+    curl --proto '=https' --tlsv1.2 -sSfL https://install.determinate.systems/nix | sh -s -- install --no-confirm
+    log "Determinate Nix installed"
+  else
+    log "[dry-run] would run: curl -sSfL https://install.determinate.systems/nix | sh -s -- install --no-confirm"
+  fi
+fi
 
 # ── Update ───────────────────────────────────────────────────────────
 if [ "$PVE_PI_UPDATE" = 1 ]; then

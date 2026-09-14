@@ -23,13 +23,14 @@ let
     PVE_PI_PVE_TEST=${b cfg.pveTest}
     PVE_PI_DISABLE_NAG=${b cfg.disableNag}
     PVE_PI_HA=${cfg.highAvailability}
+    PVE_PI_INSTALL_NIX=${b cfg.installNix}
     PVE_PI_UPDATE=${b cfg.update}
     PVE_PI_REBOOT=${b cfg.reboot}
   '';
 in
 pkgs.writeShellApplication {
   name = "pve-post-install";
-  runtimeInputs = with pkgs; [ coreutils gnused gawk gnugrep findutils ];
+  runtimeInputs = with pkgs; [ coreutils gnused gawk gnugrep findutils curl ];
   text = prelude + "\n" + builtins.readFile ./routine.sh;
   meta = {
     description = "Declarative, non-interactive Proxmox VE post-install routine (nix run)";
