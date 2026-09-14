@@ -115,6 +115,10 @@ in {
 
   docs = self.packages.${pkgs.system}.docs;
 
+  # The PVE post-install routine builds (shellcheck runs via
+  # writeShellApplication) and its declared options evaluate.
+  pve-post-install = self.packages.${pkgs.system}.pve-post-install;
+
   ported-apps = pkgs.runCommand "catalog-ported-apps-check" {
     nativeBuildInputs = [ pkgs.jq ];
     apps = lib.concatStringsSep " " ported;
