@@ -80,6 +80,49 @@ app*, which is a CI concern, addressed below.
    flake. Written as plain modules taking schema/lib through module args, they
    already do; this becomes a hard rule.
 
+## Sequencing the bulk work
+
+The upstream surface, by category (counts from `legacy/`):
+
+| Category | Upstream | Maps to | When |
+| --- | --- | --- | --- |
+| **Helpers** — PVE host config/maintenance | `tools/pve/` (35) | `nix run`/ansible host tools | first |
+| **Core** — shared install library | `misc/*.func` (10) | triage (below), not a 1:1 port | first (triage) |
+| **LXC apps** — the bulk | `ct/` (590) + `install/` (577) ≈ 577 apps | preset + NixOS module (or ansible role for non-NixOS) | third (automated) |
+| **VM apps** | `vm/` (16) | fleetkit VM images (proxmox-vm / -cloud) | last |
+
+Confirmed order — **helpers + core → LXCs → VMs** — with these refinements:
+
+1. **Helpers first** (`tools/pve`, 35): self-contained, host-level, no dependency
+   on the app machinery, immediate value (a fresh baremetal node). Proves the
+   ansible+Python engine on a bounded set. One done (post-pve-install); the rest
+   are small (fstrim, microcode, kernel-*, scaling-governor), maintenance
+   (update/clean-lxcs), or upgrades (pve8/pbs).
+2. **Core is a triage, not a port.** `misc/*.func` splits three ways:
+   `install.func`'s `setup_*` primitives → the reusable base every LXC app
+   consumes (build these first — each unlocks many apps); container/VM *creation*
+   (`build.func`, `vm-core.func`, `cloud-init.func`) → already exists as
+   fleetkit's tf emitters + images family, so route through it, do not re-port;
+   `api.func` (telemetry) + `core.func` (whiptail UI) → not-applicable, dropped.
+3. **Prove the contract before the bulk.** After the base + primitives, hand-port
+   a few reference LXC apps spanning the common shapes (node / python /
+   postgres-backed / oci) to lock the module contract + the de-brand/de-telemetry
+   pass. Only THEN enable the auto-draft workflows — otherwise the pipeline
+   regenerates ~577 apps against a contract that then changes.
+4. **Order core primitives by app-frequency.** Scan `install/` for which `setup_*`
+   helpers the most scripts use; build those first so each unlocks the largest
+   batch of apps.
+5. **An LXC "app" is the install logic, not the creation script.** fleetkit
+   already creates the guest (tf + bootstrap image); `ct/*.sh` metadata becomes
+   the preset (OS, resources), `install/*.sh` becomes the module/role. Do not
+   re-port container creation.
+6. **Seed the status registry from the upstream tree early** (right after the
+   boundary): enumerate `ct` / `install` / `vm` / `tools` as `pending`, so the
+   work queue + coverage map exist from day one and the pick-one workflow is
+   bounded.
+7. **VMs last** (16): few, non-critical, and they reuse the VM bootstrap images
+   already built.
+
 ## Consequences
 
 - **Positive**: one input and one validation gate for engine + catalog;

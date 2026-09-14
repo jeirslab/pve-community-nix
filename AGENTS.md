@@ -1,6 +1,10 @@
 # AGENTS.md — operating manual for AI agents
 
-This repo is a **fleetkit consumer-side catalog**. fleetkit's
+This repo is fleetkit's **catalog of service modules + PVE utilities**,
+consumed BY fleetkit as a `flake = false` git+file submodule — see
+[ADR-0001](docs/adr/0001-catalog-as-fleetkit-submodule.md), which **supersedes
+the former "consumer-side catalog" framing** (the dependency direction is now
+fleetkit → catalog). fleetkit's
 [AGENTS.md](https://github.com/alexanderjerome/fleetkit/blob/main/AGENTS.md)
 iron rules apply verbatim; these are the additions.
 
@@ -8,9 +12,14 @@ iron rules apply verbatim; these are the additions.
 
 Per-application presets (`fleet.catalog.apps.<name>`), the `mkApp`
 helper, NixOS app modules (`apps.<name>`), PVE-host tooling, a consumer
-template, and docs. The provisioning engine, fleet schema, images, CLI
-and ansible layer live in fleetkit — fix engine gaps *there*, never by
-vendoring.
+template, and docs. The provisioning **engine** — fleet schema, terranix
+emitters, images, CLI, ansible layer — still lives in fleetkit: use it, never
+reimplement or vendor it here. What reversed (ADR-0001) is *consumption*:
+fleetkit now imports this catalog's source, so the catalog's components follow
+fleetkit's **`mkComponent` + committed-interface-schema + `component-*` check
+system** (`nix/lib/mkComponent.nix`, `nix/components/`), folded into fleetkit's
+single `nix flake check`. Direction + phased plan: ADR-0001 and
+[ROADMAP.md](ROADMAP.md) (the historical `PLAN.md` predates the reversal).
 
 ## Iron rules (additions)
 
@@ -36,7 +45,9 @@ vendoring.
 - `nix build .#docs` → options + catalog site.
 - `nix build .#catalog-json` → the catalog as JSON (what `fleet apps` reads).
 - `templates/consumer/` → a complete working consumer.
-- `PLAN.md` → phases, decisions, and the fleetkit gap-fill design.
+- [ADR-0001](docs/adr/0001-catalog-as-fleetkit-submodule.md) + [ROADMAP.md](ROADMAP.md)
+  → the current direction, the checks/schema contract, and the phased bulk-work
+  order (helpers + core → LXCs → VMs). `PLAN.md` is historical (pre-ADR-0001).
 
 ## Contribution shape
 
