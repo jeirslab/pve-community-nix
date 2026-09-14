@@ -85,6 +85,20 @@ in
       '';
     };
 
+    installNix = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Install Determinate Nix on the host (idempotent — the installer detects
+        an existing install). NOTE: `nix run` already needs Nix present, so this
+        cannot bootstrap its own first invocation; its purpose is to make "this
+        PVE host is Nix-capable" a declared, repeatable outcome of the routine
+        (a step toward managing PVE hosts declaratively). Fetches and runs the
+        Determinate installer — an explicit, opt-in bootstrap, unlike the silent
+        telemetry the original script sourced.
+      '';
+    };
+
     update = mkOption {
       type = types.bool;
       default = true;
