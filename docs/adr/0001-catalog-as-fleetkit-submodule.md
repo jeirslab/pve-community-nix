@@ -48,10 +48,25 @@ app*, which is a CI concern, addressed below.
    fleetkit → catalog → fleetkit is therefore not a Nix input cycle. This is the
    same pattern homelab already uses for `git+file:./submodules/xgcs/deployments`.
 
-3. **The catalog mirrors fleetkit's check conventions and exposes its checks as
-   importable definitions** (functions of `{ pkgs, lib, fleetkit-context }`),
-   not just as `flake.checks` outputs — so fleetkit folds them into its own
-   `nix flake check`.
+3. **The catalog adopts fleetkit's component + checks/schema system** — the one
+   established during the fleetkit rework (component model), not a parallel
+   invention:
+   - Each app/utility is an `mkComponent` component (fleetkit's
+     `nix/lib/mkComponent.nix`) — a family + name + `src` + an interface, with
+     eval-time subdir assertions.
+   - Its exported interface is **locked by a committed schema** (the
+     `nix/components/schema/**` JSON pattern), and drift fails a
+     `component-<family>-<name>` check — exactly how fleetkit gates its own
+     modules/tf/images families via `nix/components/{registry,checks,eval}.nix`.
+   - The catalog exposes its check + schema *definitions* as importable
+     functions (not just `flake.checks` outputs) and registers its components in
+     the same registry shape, so fleetkit's `nix flake check` — the single
+     acceptance gate — folds them in alongside `component-*`,
+     `compute-surface-golden`, `cli-verbs-golden`, and `introspection-surface`.
+   - Net: the catalog is validated by the *same* contract-locked machinery as
+     the engine — an app's interface cannot drift silently, and reliability
+     comes from that shared schema+check boundary (the point of the component
+     model), not from the repo split.
 
 4. **Heavy validation stays in the catalog's standalone CI.** The catalog keeps
    its own flake (inputs fleetkit from GitHub) and runs the expensive
