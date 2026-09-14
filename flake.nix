@@ -60,7 +60,18 @@
       # data reaches the CLI through built artifacts, never `nix eval`).
       catalog-json = pkgs.writeText "catalog.json"
         (builtins.toJSON (catalogLib.evalCatalog { fleetSchema = fleetkit.nixosModules.fleetSchema; catalogModules = ./nix/fleet; }));
+
+      # PVE-host tooling: the declarative, non-interactive Proxmox VE
+      # post-install routine. `nix run .#pve-post-install` (dry-run) or
+      # `… -- --yes` (apply). Options in nix/pve/post-install/options.nix.
+      pve-post-install = import ./nix/pve/post-install { inherit pkgs lib; };
+
       default = catalog-json;
+    };
+
+    apps.${system}.pve-post-install = {
+      type = "app";
+      program = lib.getExe self.packages.${system}.pve-post-install;
     };
 
     templates.consumer = {
