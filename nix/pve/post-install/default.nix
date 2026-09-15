@@ -3,7 +3,7 @@
 # Compiles the declared pve.postInstall options (options.nix) into a single
 # non-interactive `nix run` executable: a small prelude sets the PVE_PI_* env
 # vars from the option defaults, then the static routine (routine.sh) applies
-# them. Run-time flags (--yes / --dry-run / --reboot / --no-update) override the
+# them. Run-time flags (--yes / --dry-run / --reboot / --no-update / --ha MODE) override the
 # decide-at-the-moment bits; everything else is what the .nix declares.
 #
 # The routine drives a live PVE host, so it calls the host's apt / pveversion /

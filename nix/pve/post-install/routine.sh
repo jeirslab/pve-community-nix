@@ -23,6 +23,8 @@ Flags:
   --reboot          Reboot when finished.
   --no-reboot       Do not reboot (override the declared default).
   --no-update       Skip apt update && dist-upgrade.
+  --ha MODE         Override HA services: leave | enable | disable
+                    (enable = start pve-ha-lrm/crm + corosync).
   --install-nix     Install Determinate Nix on the host (idempotent).
   --no-install-nix  Do not install Nix (override the declared default).
   -h, --help        This help.
@@ -39,6 +41,13 @@ while [ $# -gt 0 ]; do
     --reboot) PVE_PI_REBOOT=1 ;;
     --no-reboot) PVE_PI_REBOOT=0 ;;
     --no-update) PVE_PI_UPDATE=0 ;;
+    --ha)
+      shift
+      case "${1:-}" in
+        leave | enable | disable) PVE_PI_HA="$1" ;;
+        *) echo "pve-post-install: --ha needs one of leave|enable|disable" >&2; exit 2 ;;
+      esac
+      ;;
     --install-nix) PVE_PI_INSTALL_NIX=1 ;;
     --no-install-nix) PVE_PI_INSTALL_NIX=0 ;;
     -h | --help) usage; exit 0 ;;
