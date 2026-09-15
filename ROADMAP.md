@@ -68,6 +68,15 @@ Replace the bash execution layer:
 - **Convert the `nix run` post-install** (the routine we shipped) to this
   engine: `nix run` stays the entrypoint but drives ansible-runner, gaining
   structured/parseable outputs instead of scraping stdout.
+- **Migrate fleetkit's `ansible/roles/proxmox/base` into this repo** — a
+  head start most of this phase already has. That role does no-subscription
+  sources (deb822), subscription-nag removal, and apt-update, **and already
+  ports a batch of `tools/pve` helpers as ansible tasks**: microcode,
+  kernel-clean, kernel-pin, scaling-governor, nic-offloading-fix, disk-health
+  (gated by `providers.proxmox.hostTweaks`). Move it here, converge it with the
+  `nix run` post-install as the ansible-native layer, and reduce fleetkit's
+  ansible tree to the engine primitives the catalog builds on. (Per ADR-0001,
+  PVE-host tooling lives here, not in the engine.)
 
 ## Phase 4 — The two drafting workflows (endpoint: ai.jeirslab.xyz)
 
@@ -92,7 +101,9 @@ exposed public+authenticated.
 ## Phase 5 — Coverage: utilities, non-NixOS apps, templates
 
 - **PVE utility scripts** (pve8/pbs upgrades, update-lxcs, update-repo, …) →
-  `nix run`/ansible, declarative, same de-brand/de-telemetry contract.
+  `nix run`/ansible, declarative, same de-brand/de-telemetry contract. Several
+  are already ansible tasks in fleetkit's `proxmox/base` role (see Phase 3) —
+  migrate those first, then port the rest of `tools/pve` (35 total).
 - **Non-NixOS apps** (cannot be a NixOS module) → provision the same shape as a
   NixOS host, but as a **terranix-created guest (bpg/proxmox) + an ansible role**
   running the adapted installer. `impl` routes `nixos-*` vs `ansible-lxc`.
@@ -106,6 +117,27 @@ exposed public+authenticated.
 Once the boundary + pipeline are proven, migrate the app/service modules that
 currently live in consumer repos (homelab: authentik, mealie, wger, …) into the
 catalog, so it is genuinely the single source.
+
+## fleetkit follow-ups (dependencies — done in fleetkit, not here)
+
+Small engine changes the catalog work leans on. They belong in fleetkit (the
+engine), so they land there on a fleetkit branch, not in this repo:
+
+- **`issue-tf-token --host`** — `fleet pve cluster issue-tf-token` already mints
+  a `terranix@pve` token (Administrator, `--privsep=0`) into SOPS in bpg's
+  `user@realm!name=secret` format, but it derives its target from the *cluster
+  founder* (`fleet.compute` members). A standalone external provider (e.g.
+  dell-2 over tailscale) needs a `--host <ip>` override so the token is minted
+  on an arbitrary host, not the founder.
+- **Separate deploy key from breakglass sysadmin.** `fleet.settings.adminSshKeys`
+  (breakglass) and the bootstrap module's `deployKey` / `extraAuthorizedKeys`
+  exist, but nothing enforces the split. Make a dedicated **deploy key**
+  first-class and wire colmena + the CD runners (`deployRunner` / `githubRunner`)
+  to it, leaving the sysadmin key as break-glass only.
+- **Standalone (non-cluster) proxmox provider** — confirm a tailnet-reachable
+  host can be a `fleet.providers.proxmox.<name>` instance with its own
+  endpoint/token, without cluster membership (the dell-2 topology). Likely
+  already works; verify + document.
 
 ## Verification / guardrails
 
