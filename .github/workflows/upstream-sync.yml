@@ -26,6 +26,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write   # labels (service:<name>, ai-generated, needs-human)
 
 concurrency:
   group: upstream-sync

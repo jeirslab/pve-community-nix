@@ -148,5 +148,9 @@ git push -q -f origin "svc/${NAME}"
 labels="service:${NAME},ai-generated"
 draft=()
 if ! ${verified} || ! ${approved}; then labels+=",needs-human"; draft=(--draft); fi
-gh pr create --base "${BASE_BRANCH}" --head "svc/${NAME}" "${draft[@]}" \
-    --title "services/${NAME}: add (upstream ${APP})" --label "${labels}" --body-file "${body}"
+if ! gh pr create --base "${BASE_BRANCH}" --head "svc/${NAME}" "${draft[@]}" \
+        --title "services/${NAME}: add (upstream ${APP})" --label "${labels}" --body-file "${body}"; then
+    # Typically the org setting "Allow GitHub Actions to create and approve
+    # pull requests" being off. The work is on the branch either way.
+    echo "::warning::could not open the PR; branch svc/${NAME} is pushed — open it from there (body: ${body})"
+fi

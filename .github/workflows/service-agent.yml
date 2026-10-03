@@ -10,8 +10,12 @@
 #   The trigger branch is deleted when the run ends.
 # - workflow_dispatch: the same, once unstable is the default branch.
 #
-# Secret: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) — Claude runs on
-# the subscription, not the API. Session transcripts are committed with the
+# Secrets: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) — Claude runs
+# on the subscription, not the API. AGENT_GH_TOKEN (fine-grained PAT for this
+# repo: contents, pull requests, issues = write) pushes the svc/<name> branch
+# and opens the PR — unlike the built-in token, a PR opened with it triggers
+# `check` and `images`, and it isn't blocked by the org's "Actions may not
+# create PRs" policy. Without it the built-in token is used. Session transcripts are committed with the
 # service under .claude/.sessions/projects/.
 
 name: service-agent
@@ -25,6 +29,8 @@ on:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: true
+      AGENT_GH_TOKEN:
+        required: false
   workflow_dispatch:
     inputs:
       app:
@@ -36,6 +42,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write   # labels (service:<name>, ai-generated, needs-human)
 
 concurrency:
   group: service-agent-${{ inputs.app || github.ref_name }}
@@ -48,7 +55,7 @@ jobs:
     env:
       APP: ${{ inputs.app || '' }}
       BASE_BRANCH: nightly
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN || github.token }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
       - name: App from the trigger branch
@@ -65,6 +72,7 @@ jobs:
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
+          token: ${{ secrets.AGENT_GH_TOKEN || github.token }}
 
       - name: Enable KVM (parity VM tests)
         run: |
