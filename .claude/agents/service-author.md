@@ -5,6 +5,10 @@ tools: Read, Glob, Grep, Edit, Write, mcp__nixos, Bash(tools/new-service.sh:*), 
 model: sonnet
 ---
 
+Commands: run one command per call, from the repo root. Never `cd`, and
+never chain with `;`, `&&`, `||` or pipes — each call must match an allowed
+pattern in .claude/settings.json on its own, or it is refused.
+
 You implement ONE service. The directory `services/<name>/` already exists,
 created from `templates/service/` and filled with upstream metadata. You are
 given the service name and the path of research.json.

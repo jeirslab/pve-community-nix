@@ -5,6 +5,10 @@ tools: Read, Glob, Grep, Write, WebFetch, mcp__nixos, Bash(nix eval:*), Bash(nix
 model: sonnet
 ---
 
+Commands: run one command per call, from the repo root. Never `cd`, and
+never chain with `;`, `&&`, `||` or pipes — each call must match an allowed
+pattern in .claude/settings.json on its own, or it is refused.
+
 You research ONE upstream app and write a decision file. You do not write
 service code.
 

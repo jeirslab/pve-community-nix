@@ -6,6 +6,7 @@
       "Grep",
       "WebFetch",
       "mcp__nixos",
+      "mcp__nixos__*",
       "Edit(services/**)",
       "Write(services/**)",
       "Write(.agent/**)",

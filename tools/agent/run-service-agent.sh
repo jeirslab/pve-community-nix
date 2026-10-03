@@ -48,7 +48,11 @@ log() { printf '\n== %s\n' "$*"; }
 [[ -f ".upstream/ct/${APP}.sh" ]] || { echo "error: no upstream app ${APP} (run tools/upstream/checkout.sh)" >&2; exit 2; }
 
 claude_run() {  # <agent> <transcript-name> <prompt>
-    claude -p --agent "$1" --permission-mode acceptEdits "${MCP[@]}" --output-format json "$3" \
+    # --settings explicitly: a fresh CLAUDE_CONFIG_DIR has never trusted this
+    # workspace, and an untrusted project's .claude/settings.json permissions
+    # are ignored — every allowed command would be refused.
+    claude -p --agent "$1" --permission-mode acceptEdits --settings .claude/settings.json \
+        "${MCP[@]}" --output-format json "$3" \
         > "${WORK}/$2.json" 2> "${WORK}/$2.err" || true
     jq -r '.result // empty' "${WORK}/$2.json" 2>/dev/null | tail -30
 }
