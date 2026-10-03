@@ -1,7 +1,8 @@
 # The mdBook site: the hand-written chapters under docs/src, plus one page
 # per service generated from its contract and NixOS options — configuration
-# table, ports, volumes, the compose snippet, and the option reference.
-{ lib, pkgs }:
+# table, ports, volumes, the compose snippet, and the option reference —
+# and the option reference of each Proxmox VE host tool.
+{ lib, pkgs, pve }:
 
 services:
 
@@ -24,6 +25,13 @@ let
 
   optionsDoc = s: (pkgs.nixosOptionsDoc {
     options = s.system.options.svc.${s.name};
+    transformOptions = o: o // { declarations = [ ]; };
+  }).optionsCommonMark;
+
+  # A host tool's options, rendered into its hand-written chapter in place
+  # of an <NAME>_OPTIONS line.
+  pveOptionsDoc = m: (pkgs.nixosOptionsDoc {
+    options = (lib.evalModules { modules = [ m ]; }).options.pve;
     transformOptions = o: o // { declarations = [ ]; };
   }).optionsCommonMark;
 
@@ -79,6 +87,8 @@ pkgs.runCommand "pve-community-nix-docs" { nativeBuildInputs = [ pkgs.mdbook ]; 
   cp -r ${../docs} book
   chmod -R u+w book
   mkdir -p book/src/services
+  sed -i -e '/POST_INSTALL_OPTIONS/{r ${pveOptionsDoc pve.options.postInstall}
+  d}' book/src/pve-host.md
   {
     cat book/src/SUMMARY.md
     echo

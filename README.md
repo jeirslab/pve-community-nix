@@ -20,6 +20,11 @@ NixOS.
 }
 ```
 
+The flake also carries tools for the Proxmox VE host itself, configured in
+Nix: `nix run .#pve-post-install` (a dry run; `-- --yes` applies), or
+`lib.pve.postInstall { … }` for your own settings. See the docs chapter
+*Proxmox VE host tools*.
+
 New services are written by agents, one agent run per upstream app, and
 land through PRs into `nightly`. See [AGENTS.md](./AGENTS.md) for the layout
 and rules, and `docs/` for how services are built.
