@@ -1,0 +1,105 @@
+# service-agent — one agent run for ONE upstream app: research → author →
+# verify → review → PR into nightly (tools/agent/run-service-agent.sh).
+#
+# Triggers:
+# - workflow_call: from upstream-sync, one call per detected app (a matrix),
+#   so N new apps are N independent agent runs.
+# - push to agent/run/<app>: the manual trigger while this branch isn't the
+#   repo default (workflow_dispatch only sees the default branch). Push any
+#   commit of unstable there:  git push origin unstable:agent/run/uptimekuma
+#   The trigger branch is deleted when the run ends.
+# - workflow_dispatch: the same, once unstable is the default branch.
+#
+# Secret: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) — Claude runs on
+# the subscription, not the API. Session transcripts are committed with the
+# service under .claude/.sessions/projects/.
+
+name: service-agent
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Upstream app id (the ct/<app>.sh name, e.g. uptimekuma)
+        required: true
+  push:
+    branches: [ "agent/run/**" ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: service-agent-${{ inputs.app || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      APP: ${{ inputs.app || '' }}
+      BASE_BRANCH: nightly
+      GH_TOKEN: ${{ github.token }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: App from the trigger branch
+        if: github.event_name == 'push'
+        run: echo "APP=${GITHUB_REF_NAME#agent/run/}" >> "${GITHUB_ENV}"
+
+      - name: Check credentials
+        run: |
+          [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || {
+            echo "::error::set the CLAUDE_CODE_OAUTH_TOKEN repo secret (claude setup-token)"; exit 1; }
+
+      # Work happens on top of nightly, where the services live.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Enable KVM (parity VM tests)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+        with:
+          extra-conf: |
+            system-features = nixos-test benchmark big-parallel kvm
+
+      - name: Install Claude Code
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Upstream mirror
+        run: tools/upstream/checkout.sh
+
+      - name: Agent run
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tools/agent/run-service-agent.sh "${APP}"
+
+      - name: Keep the agent's work files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-${{ env.APP }}
+          path: .agent/
+          include-hidden-files: true
+          if-no-files-found: ignore
+
+      - name: Delete the trigger branch
+        if: always() && github.event_name == 'push'
+        run: git push origin --delete "${GITHUB_REF_NAME}" || true

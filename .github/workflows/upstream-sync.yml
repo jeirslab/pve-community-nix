@@ -1,0 +1,99 @@
+# upstream-sync — fast-forward the upstream mirror (official-community-scripts)
+# to community-scripts/ProxmoxVE, find container apps that changed or are new
+# and have no service yet, and start ONE service-agent run per app.
+#
+# Dispatch is controlled by repo variables, so detection can run without
+# spending agent runs while the behaviour is being proven:
+#   AGENT_DISPATCH     off (default: list only) | limited | on
+#   AGENT_MAX_PER_RUN  cap for `limited` (default 1)
+#
+# Triggers: schedule (only once unstable is the default branch), push to
+# agent/sync (manual trigger until then), workflow_dispatch.
+
+name: upstream-sync
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+    inputs:
+      since:
+        description: Mirror commit to diff from (empty = the mirror's tip before this sync)
+        required: false
+  push:
+    branches: [ "agent/sync" ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.pick.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: nightly
+          fetch-depth: 0
+
+      - name: Fast-forward the mirror
+        id: sync
+        run: |
+          git fetch -q origin official-community-scripts
+          before="$(git rev-parse origin/official-community-scripts)"
+          git fetch -q https://github.com/community-scripts/ProxmoxVE.git main
+          upstream="$(git rev-parse FETCH_HEAD)"
+          if git merge-base --is-ancestor "${before}" "${upstream}"; then
+            git push -q origin "${upstream}:refs/heads/official-community-scripts"
+          else
+            echo "::error::official-community-scripts has diverged from upstream; refusing to overwrite it"; exit 1
+          fi
+          echo "before=${before}" >> "${GITHUB_OUTPUT}"
+          echo "after=${upstream}" >> "${GITHUB_OUTPUT}"
+          echo "mirror ${before::12} → ${upstream::12}" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Detect apps
+        id: pick
+        env:
+          SINCE: ${{ inputs.since || steps.sync.outputs.before }}
+          MODE: ${{ vars.AGENT_DISPATCH || 'off' }}
+          MAX: ${{ vars.AGENT_MAX_PER_RUN || '1' }}
+        run: |
+          tools/upstream/checkout.sh official-community-scripts
+          tools/upstream/detect.sh "${SINCE}" HEAD > apps.txt
+          echo "$(wc -l < apps.txt) app(s) changed or new without a service:" >> "${GITHUB_STEP_SUMMARY}"
+          sed 's/^/- /' apps.txt >> "${GITHUB_STEP_SUMMARY}"
+          case "${MODE}" in
+            on) picked="$(cat apps.txt)" ;;
+            limited) picked="$(head -n "${MAX}" apps.txt)" ;;
+            *) picked="" ;;
+          esac
+          echo "apps=$(printf '%s\n' "${picked}" | sed '/^$/d' | jq -Rnc '[inputs]')" >> "${GITHUB_OUTPUT}"
+          echo "dispatch mode: ${MODE}; starting agent runs for: ${picked:-none}" >> "${GITHUB_STEP_SUMMARY}"
+
+  agents:
+    needs: detect
+    if: needs.detect.outputs.apps != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    uses: ./.github/workflows/service-agent.yml
+    with:
+      app: ${{ matrix.app }}
+    secrets: inherit
+
+  cleanup:
+    needs: [ detect, agents ]
+    if: always() && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git push origin --delete "${GITHUB_REF_NAME}" || true

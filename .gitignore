@@ -1,0 +1,8 @@
+result
+result-*
+/.agent/
+/.upstream/
+# Claude's state during agent runs (CLAUDE_CONFIG_DIR): only the session
+# transcripts are kept and committed, as the record of what each agent did.
+/.claude/.sessions/*
+!/.claude/.sessions/projects/

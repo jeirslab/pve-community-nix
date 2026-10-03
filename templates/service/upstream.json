@@ -1,0 +1,17 @@
+{
+  "app": "__APP__",
+  "title": "__TITLE__",
+  "source": "__SOURCE__",
+  "upstream_commit": "__COMMIT__",
+  "scripts": {
+    "ct": "ct/__APP__.sh",
+    "install": "install/__APP__-install.sh"
+  },
+  "resources": __RESOURCES__,
+  "decision": {
+    "approach": "extracted",
+    "nixpkgs_package": null,
+    "nixpkgs_module": null,
+    "reason": ""
+  }
+}

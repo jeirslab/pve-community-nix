@@ -1,0 +1,38 @@
+# docs — build the mdBook site (every service, its env vars, compose snippet
+# and NixOS options) and keep it as an artifact. Publishing to GitHub Pages
+# is opt-in (repo variable DOCS_DEPLOY=true): the Pages site may still be
+# serving main's docs, and this must not replace it by surprise.
+
+name: docs
+
+on:
+  push:
+    branches: [ unstable, nightly, stable ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - run: nix build -L .#docs -o book && cp -rL book site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: vars.DOCS_DEPLOY == 'true' && github.ref_name == 'stable'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

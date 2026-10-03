@@ -1,0 +1,63 @@
+# promote — keep the branches moving:
+#   unstable → nightly  on every push to unstable (merge), so agents always
+#                       build against the current framework
+#   nightly → unstable  a PR, opened/updated on every push to nightly, merged
+#                       automatically when it only touches services/ and
+#                       `check` passes (needs "Allow auto-merge" in the repo)
+# unstable → stable (weekly + on demand, with release notes) is the next step
+# and not automated yet.
+
+name: promote
+
+on:
+  push:
+    branches: [ unstable, nightly ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  sync-nightly:
+    if: github.ref_name == 'unstable'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: nightly
+          fetch-depth: 0
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit origin/unstable
+          git push origin nightly
+
+  services-to-unstable:
+    if: github.ref_name == 'nightly'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          outside="$(git diff --name-only origin/unstable...origin/nightly | grep -v '^services/' || true)"
+          if [ -z "$(git diff --name-only origin/unstable...origin/nightly)" ]; then
+            echo "nothing to promote"; exit 0
+          fi
+          pr="$(gh pr list --base unstable --head nightly --state open --json number --jq '.[0].number // empty')"
+          [ -n "${pr}" ] || pr="$(gh pr create --base unstable --head nightly \
+            --title "Promote services from nightly" \
+            --body "Services merged into nightly since the last promotion. Auto-merges when only services/ changed and check passes." \
+            | grep -o '[0-9]*$')"
+          if [ -z "${outside}" ]; then
+            gh pr merge "${pr}" --auto --merge || echo "::warning::auto-merge not enabled; PR #${pr} left open"
+          else
+            echo "::warning::nightly also changes files outside services/ (${outside}); PR #${pr} needs a human"
+          fi

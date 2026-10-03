@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "mcp__nixos",
+      "Edit(services/**)",
+      "Write(services/**)",
+      "Write(.agent/**)",
+      "Bash(tools/new-service.sh:*)",
+      "Bash(tools/verify-service.sh:*)",
+      "Bash(tools/upstream/app-info.sh:*)",
+      "Bash(nix build:*)",
+      "Bash(nix eval:*)",
+      "Bash(nix log:*)",
+      "Bash(nix search:*)",
+      "Bash(nix flake show:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(jq:*)"
+    ],
+    "deny": [
+      "Edit(lib/**)",
+      "Write(lib/**)",
+      "Edit(tools/**)",
+      "Write(tools/**)",
+      "Edit(templates/**)",
+      "Write(templates/**)",
+      "Edit(.github/**)",
+      "Write(.github/**)",
+      "Edit(.claude/**)",
+      "Write(.claude/**)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh:*)"
+    ]
+  }
+}
