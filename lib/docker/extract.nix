@@ -17,8 +17,15 @@ let
   sc = unit.serviceConfig;
 
   asList = x: if x == null then [ ] else if builtins.isList x then x else [ x ];
+
+  # Cut strings with substring, never with builtins.match captures: match
+  # drops the string context, so the store paths in a command would silently
+  # fall out of the image's closure (seen as exit 127, "no such file").
+  drop = n: s: builtins.substring n (builtins.stringLength s) s;
   # systemd command prefixes (-, @, +, !, :) mean nothing outside systemd.
-  stripPrefix = s: builtins.head (builtins.match "[-@+!:]*(.*)" (toString s));
+  stripPrefix = s:
+    let str = toString s; in
+    drop (builtins.stringLength (builtins.head (builtins.match "([-@+!:]*).*" str))) str;
 
   execStart =
     let cmds = asList (sc.ExecStart or null); in
@@ -45,19 +52,26 @@ let
 
   # Environment= lines set directly in serviceConfig, as an attrset.
   envLines = lib.listToAttrs (map
-    (l: let m = builtins.match "([^=]+)=(.*)" l; in lib.nameValuePair (builtins.elemAt m 0) (builtins.elemAt m 1))
-    (lib.filter (l: builtins.match "[^=]+=.*" l != null) (asList (sc.Environment or null))));
+    (l:
+      let key = builtins.head (builtins.match "([^=]+)=.*" l); in
+      lib.nameValuePair key (drop (builtins.stringLength key + 1) l))
+    (lib.filter (l: builtins.match "[^=]+=.*" l != null) (map toString (asList (sc.Environment or null)))));
 
   # Defaults only: anything set at `docker run -e` / env_file / compose wins,
   # exactly like an environmentFile wins over Environment= on NixOS. PATH is
   # the exception — a container always arrives with one, so the unit's PATH
   # is prepended instead of defaulted.
   allEnv = dirEnv // envLines // unit.environment;
-  # NixOS puts systemd on every unit's PATH; systemctl & co. are useless in
-  # a container and would pull systemd's whole closure into the image.
-  unitPath = lib.concatStringsSep ":"
-    (lib.filter (p: builtins.match ".*-systemd-[0-9].*" p == null)
-      (lib.splitString ":" (allEnv.PATH or "")));
+  # Rebuilt from the unit's package list rather than its PATH string: NixOS
+  # puts systemd on every unit's path, systemctl & co. are useless in a
+  # container, and string-filtering PATH can't drop it (every piece of a
+  # split string keeps the whole string's context, so systemd would stay in
+  # the closure anyway).
+  pathPkgs = lib.filter (p: !(lib.hasPrefix "systemd-" (p.name or ""))) (unit.path or [ ]);
+  unitPath = lib.concatStringsSep ":" (lib.filter (s: s != "") [
+    (lib.makeBinPath pathPkgs)
+    (lib.makeSearchPathOutput "bin" "sbin" pathPkgs)
+  ]);
   defaults = builtins.removeAttrs allEnv [ "PATH" ];
 
   entrypoint = pkgs.writeShellScript "${name}-entrypoint" ''
