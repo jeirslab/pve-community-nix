@@ -83,6 +83,18 @@ in
       '';
     };
 
+    installNix = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Install Determinate Nix on the host (the installer is idempotent).
+        Running this tool through `nix run` already needs Nix, so this cannot
+        bootstrap the first run; it makes "the host has Nix" a declared,
+        repeatable outcome. Fetches and runs the Determinate Systems
+        installer from install.determinate.systems.
+      '';
+    };
+
     update = mkOption {
       type = types.bool;
       default = true;

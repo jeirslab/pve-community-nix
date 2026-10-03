@@ -11,8 +11,8 @@ run on the host. They are not services and have no container image.
 The non-interactive form of upstream's `post-pve-install.sh`: correct the
 APT sources for the running release (PVE 8 or 9), switch from the
 enterprise to the no-subscription repository, optionally add Ceph and
-`pve-test`, remove the subscription nag, set HA on or off, and
-dist-upgrade. No telemetry.
+`pve-test`, remove the subscription nag, set HA on or off, optionally
+install Determinate Nix, and dist-upgrade. No telemetry.
 
 It is a **dry run unless `--yes` is passed**: run it once to read the plan,
 then again with `--yes` to apply it.
@@ -43,7 +43,7 @@ then `nix run .#pve-post-install`. An unknown setting or a bad value is an
 evaluation error, not a surprise on the host.
 
 Run-time flags: `--yes`, `--dry-run`, `--reboot` / `--no-reboot`,
-`--no-update`, `--help`.
+`--no-update`, `--install-nix` / `--no-install-nix`, `--help`.
 
 ### Settings
 

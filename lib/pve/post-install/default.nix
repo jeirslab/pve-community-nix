@@ -18,7 +18,7 @@ let
 in
 pkgs.writeShellApplication {
   name = "pve-post-install";
-  runtimeInputs = with pkgs; [ coreutils gnused gawk gnugrep ];
+  runtimeInputs = with pkgs; [ coreutils gnused gawk gnugrep curl ];
   text = ''
     # Compiled from the caller's pve.postInstall settings.
     PVE_PI_CORRECT_SOURCES=${b cfg.correctSources}
@@ -28,6 +28,7 @@ pkgs.writeShellApplication {
     PVE_PI_PVE_TEST=${b cfg.pveTest}
     PVE_PI_DISABLE_NAG=${b cfg.disableNag}
     PVE_PI_HA=${cfg.highAvailability}
+    PVE_PI_INSTALL_NIX=${b cfg.installNix}
     PVE_PI_UPDATE=${b cfg.update}
     PVE_PI_REBOOT=${b cfg.reboot}
 
