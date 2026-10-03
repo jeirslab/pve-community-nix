@@ -29,7 +29,15 @@
         // {
           docs = svc.docs services;
           fixture-image = fixture.image;
+          # Proxmox VE host tooling with its default settings. Hosts that
+          # need other settings build their own: lib.pve.postInstall { … }.
+          pve-post-install = svc.pve.postInstall { };
         };
+
+      apps.${system}.pve-post-install = {
+        type = "app";
+        program = nixpkgs.lib.getExe self.packages.${system}.pve-post-install;
+      };
 
       checks.${system} =
         svc.serviceChecks services
@@ -38,6 +46,8 @@
           framework-fixture-eval = fixture.checks.eval;
           framework-fixture-parity = fixture.checks.parity;
           framework-docs = svc.docs services;
+          # Builds the routine, which runs shellcheck over it.
+          framework-pve-post-install = self.packages.${system}.pve-post-install;
         };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;

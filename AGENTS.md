@@ -10,7 +10,7 @@ not an authority.
 
 | Path | Owner | What |
 |---|---|---|
-| `lib/` | humans | the framework: contract, image backends, compose, checks, docs |
+| `lib/` | humans | the framework: contract, image backends, compose, checks, docs; `lib/pve/`: Proxmox VE host tools |
 | `tools/` | humans | deterministic scripts (upstream metadata, scaffold, verify, the agent pipeline) |
 | `templates/service/` | humans | what every service starts from |
 | `services/<name>/` | **agents** | one directory per service — the only place agents write |
@@ -52,4 +52,5 @@ tools/verify-service.sh <name> [--quick] # the acceptance gate
 tools/agent/run-service-agent.sh <app>   # one full agent run → PR
 nix flake check                          # framework self-test (fixture) + every service
 nix build .#docs                         # mdBook site
+nix run .#pve-post-install               # PVE host post-install (dry-run; -- --yes applies)
 ```
