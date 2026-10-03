@@ -11,6 +11,9 @@ let
   # What a service's default.nix receives as `svc`.
   api = { inherit lib pkgs mkService; };
 
+  # Proxmox VE host tooling — not services; see pve/default.nix.
+  pve = import ./pve { inherit lib pkgs; };
+
   loadService = dir: import dir { svc = api; };
 
   loadServices = dir:
@@ -26,7 +29,7 @@ let
       names);
 in
 api // {
-  inherit loadService loadServices;
+  inherit loadService loadServices pve;
 
   servicePackages = services: lib.concatMapAttrs
     (n: s: {
@@ -42,5 +45,5 @@ api // {
     })
     services;
 
-  docs = import ./docs.nix { inherit lib pkgs; };
+  docs = import ./docs.nix { inherit lib pkgs pve; };
 }

@@ -74,12 +74,13 @@ jobs:
         with:
           extra-conf: |
             system-features = nixos-test benchmark big-parallel kvm
-      - name: Framework self-test (fixture eval + parity) and docs
+      - name: Framework self-test (fixture eval + parity), docs and PVE host tools
         run: |
           nix build -L --no-link \
             .#checks.x86_64-linux.framework-fixture-eval \
             .#checks.x86_64-linux.framework-fixture-parity \
-            .#checks.x86_64-linux.framework-docs
+            .#checks.x86_64-linux.framework-docs \
+            .#checks.x86_64-linux.framework-pve-post-install
 
   service:
     needs: changes
