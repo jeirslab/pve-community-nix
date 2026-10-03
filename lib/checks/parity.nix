@@ -43,8 +43,11 @@ pkgs.testers.runNixOSTest {
         container.succeed(
             "podman run -d --name ${name} --network host --env-file ${envFile} ${image.passthru.ref}"
         )
-        container.wait_until_succeeds("curl -fsS -o /dev/null ${url}", timeout=${timeout})
-        print(container.succeed("podman logs ${name} 2>&1 | tail -20"))
+        try:
+            container.wait_until_succeeds("curl -fsS -o /dev/null ${url}", timeout=${timeout})
+        finally:
+            # On failure this is the only view into why the container didn't come up.
+            print(container.execute("podman ps -a; podman logs ${name} 2>&1 | tail -40")[1])
 
     ${checkCfg.testScript}
   '';
