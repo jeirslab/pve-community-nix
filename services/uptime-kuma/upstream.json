@@ -1,0 +1,17 @@
+{
+  "app": "uptimekuma",
+  "title": "Uptime Kuma",
+  "source": "https://github.com/louislam/uptime-kuma",
+  "upstream_commit": "45599d63ec1f6e40c255123a9943f8bf33feac9a",
+  "scripts": {
+    "ct": "ct/uptimekuma.sh",
+    "install": "install/uptimekuma-install.sh"
+  },
+  "resources": {"cpu":1,"ram_mb":1024,"disk_gb":4,"os":"debian","os_version":"13"},
+  "decision": {
+    "approach": "extracted",
+    "nixpkgs_package": "uptime-kuma",
+    "nixpkgs_module": "services.uptime-kuma",
+    "reason": "nixpkgs ships services.uptime-kuma with a systemd unit, lifted into the image. Config is env vars applied via the unit environment."
+  }
+}
